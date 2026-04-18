@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Show Tracker</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, sans-serif; background: #0f0f0f; color: #e8e8e8; min-height: 100vh; }
+
+.header { background: #1a1a1a; padding: 16px 20px; border-bottom: 0.5px solid #2a2a2a; display: flex; justify-content: space-between; align-items: center; }
+.header h1 { font-size: 18px; font-weight: 600; color: #fff; }
+.deal-count { font-size: 13px; color: #888; }
+
+.main { padding: 20px; max-width: 500px; margin: 0 auto; }
+
+.camera-section { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.preview-img { width: 100%; border-radius: 8px; margin-bottom: 12px; display: none; max-height: 200px; object-fit: contain; }
+.camera-btn { width: 100%; padding: 14px; background: #222; border: 0.5px solid #333; border-radius: 8px; color: #e8e8e8; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.camera-btn:active { background: #2a2a2a; }
+input[type="file"] { display: none; }
+
+.identifying { text-align: center; padding: 20px; color: #888; font-size: 14px; display: none; }
+.spinner { width: 24px; height: 24px; border: 2px solid #333; border-top-color: #00e676; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.deal-form { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 12px; padding: 20px; margin-bottom: 16px; display: none; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.field input, .field select { width: 100%; padding: 12px; background: #222; border: 0.5px solid #333; border-radius: 8px; color: #e8e8e8; font-size: 15px; }
+.field input:focus, .field select:focus { outline: none; border-color: #00e676; }
+select option { background: #222; }
+
+.type-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.type-btn { padding: 12px; border: 0.5px solid #333; border-radius: 8px; background: #222; color: #888; font-size: 15px; cursor: pointer; text-align: center; }
+.type-btn.active-buy { background: #0d2b1a; border-color: #00e676; color: #00e676; }
+.type-btn.active-sell { background: #2b1a0d; border-color: #ff9800; color: #ff9800; }
+
+.log-btn { width: 100%; padding: 14px; background: #00e676; border: none; border-radius: 8px; color: #000; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 4px; }
+.log-btn:active { background: #00c853; }
+
+.deals-section { margin-top: 8px; }
+.deals-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.deals-title { font-size: 14px; font-weight: 500; color: #888; }
+
+.deal-card { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start; }
+.deal-info { flex: 1; }
+.deal-name { font-size: 14px; font-weight: 500; color: #e8e8e8; margin-bottom: 2px; }
+.deal-meta { font-size: 12px; color: #666; }
+.deal-right { text-align: right; }
+.deal-price { font-size: 15px; font-weight: 600; }
+.deal-price.buy { color: #ef5350; }
+.deal-price.sell { color: #00e676; }
+.deal-type-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-top: 4px; display: inline-block; }
+.badge-buy { background: #1a0d0d; color: #ef5350; }
+.badge-sell { background: #0d1a0d; color: #00e676; }
+
+.summary-bar { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; text-align: center; }
+.summary-item label { font-size: 11px; color: #666; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.summary-item span { font-size: 16px; font-weight: 600; }
+.profit-pos { color: #00e676; }
+.profit-neg { color: #ef5350; }
+
+.export-btn { width: 100%; padding: 14px; background: #1a1a1a; border: 0.5px solid #333; border-radius: 8px; color: #888; font-size: 15px; cursor: pointer; margin-top: 8px; }
+.export-btn:active { background: #222; }
+
+.empty-state { text-align: center; padding: 40px 20px; color: #555; font-size: 14px; }
+
+.api-setup { background: #1a1a1a; border: 0.5px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.api-setup h3 { font-size: 15px; font-weight: 500; margin-bottom: 8px; }
+.api-setup p { font-size: 13px; color: #888; margin-bottom: 12px; }
+.api-input { width: 100%; padding: 12px; background: #222; border: 0.5px solid #333; border-radius: 8px; color: #e8e8e8; font-size: 13px; font-family: monospace; }
+.save-api-btn { width: 100%; padding: 12px; background: #222; border: 0.5px solid #00e676; border-radius: 8px; color: #00e676; font-size: 14px; cursor: pointer; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Show Tracker</h1>
+  <span class="deal-count" id="dealCount">0 deals</span>
+</div>
+
+<div class="main">
+
+  <div class="api-setup" id="apiSetup">
+    <h3>API key required</h3>
+    <p>Enter your Anthropic API key to enable card identification from photos.</p>
+    <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-ant-api...">
+    <button class="save-api-btn" onclick="saveApiKey()">Save key</button>
+  </div>
+
+  <div class="summary-bar" id="summaryBar" style="display:none">
+    <div class="summary-item">
+      <label>Spent</label>
+      <span id="totalSpent" class="profit-neg">$0</span>
+    </div>
+    <div class="summary-item">
+      <label>Earned</label>
+      <span id="totalEarned" class="profit-pos">$0</span>
+    </div>
+    <div class="summary-item">
+      <label>Net</label>
+      <span id="totalNet">$0</span>
+    </div>
+  </div>
+
+  <div class="camera-section">
+    <img id="previewImg" class="preview-img">
+    <button class="camera-btn" onclick="document.getElementById('photoInput').click()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Take photo of card
+    </button>
+    <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+  </div>
+
+  <div class="identifying" id="identifying">
+    <div class="spinner"></div>
+    Identifying card...
+  </div>
+
+  <div class="deal-form" id="dealForm">
+    <div class="field">
+      <label>Card</label>
+      <input type="text" id="cardName" placeholder="Card name">
+    </div>
+    <div class="field">
+      <label>Sport / type</label>
+      <select id="sport">
+        <option>Pokemon</option>
+        <option>Football</option>
+        <option>Basketball</option>
+        <option>Baseball</option>
+        <option>Soccer</option>
+        <option>Hockey</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Deal type</label>
+      <div class="type-btns">
+        <div class="type-btn" id="btnBuy" onclick="setType('BUY')">Buy</div>
+        <div class="type-btn" id="btnSell" onclick="setType('SELL')">Sell</div>
+      </div>
+    </div>
+    <div class="field">
+      <label id="priceLabel">Price paid</label>
+      <input type="number" id="price" placeholder="0.00" step="0.01" inputmode="decimal">
+    </div>
+    <div class="field" id="salePriceField" style="display:none">
+      <label>Sale price</label>
+      <input type="number" id="salePrice" placeholder="0.00" step="0.01" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label>Notes (optional)</label>
+      <input type="text" id="notes" placeholder="Condition, grade, etc.">
+    </div>
+    <button class="log-btn" onclick="logDeal()">Log deal</button>
+  </div>
+
+  <div class="deals-section">
+    <div class="deals-header">
+      <span class="deals-title">Today's deals</span>
+    </div>
+    <div id="dealsList">
+      <div class="empty-state">No deals logged yet.<br>Take a photo to get started.</div>
+    </div>
+  </div>
+
+  <button class="export-btn" onclick="exportCSV()" id="exportBtn" style="display:none">Export for Show Log Transfer</button>
+
+</div>
+
+<script>
+let deals = JSON.parse(localStorage.getItem('showDeals') || '[]');
+let currentType = 'BUY';
+let currentImage = null;
+let apiKey = localStorage.getItem('showTrackerApiKey') || '';
+
+if (apiKey) {
+  document.getElementById('apiSetup').style.display = 'none';
+}
+
+function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key.startsWith('sk-ant')) {
+    alert('That doesn\'t look like a valid Anthropic API key.');
+    return;
+  }
+  localStorage.setItem('showTrackerApiKey', key);
+  apiKey = key;
+  document.getElementById('apiSetup').style.display = 'none';
+}
+
+function setType(type) {
+  currentType = type;
+  document.getElementById('btnBuy').className = 'type-btn' + (type === 'BUY' ? ' active-buy' : '');
+  document.getElementById('btnSell').className = 'type-btn' + (type === 'SELL' ? ' active-sell' : '');
+  document.getElementById('priceLabel').textContent = type === 'BUY' ? 'Price paid' : 'Your cost';
+  document.getElementById('salePriceField').style.display = type === 'SELL' ? 'block' : 'none';
+}
+
+async function handlePhoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    currentImage = e.target.result;
+    const img = document.getElementById('previewImg');
+    img.src = currentImage;
+    img.style.display = 'block';
+
+    document.getElementById('identifying').style.display = 'block';
+    document.getElementById('dealForm').style.display = 'none';
+
+    const base64 = currentImage.split(',')[1];
+    const identified = await identifyCard(base64);
+
+    document.getElementById('identifying').style.display = 'none';
+    document.getElementById('dealForm').style.display = 'block';
+
+    if (identified) {
+      document.getElementById('cardName').value = identified.name || '';
+      const sportSel = document.getElementById('sport');
+      if (identified.sport) {
+        for (let i = 0; i < sportSel.options.length; i++) {
+          if (sportSel.options[i].value.toLowerCase() === identified.sport.toLowerCase()) {
+            sportSel.selectedIndex = i;
+            break;
+          }
+        }
+      }
+    }
+
+    setType('BUY');
+    document.getElementById('price').value = '';
+    document.getElementById('salePrice').value = '';
+    document.getElementById('notes').value = '';
+    document.getElementById('price').focus();
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+async function identifyCard(base64Data) {
+  if (!apiKey) return null;
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 150,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64Data } },
+            { type: 'text', text: 'This is a trading card. Reply with JSON only, no markdown: {"name": "full card name including year set and variant", "sport": "Pokemon or Football or Basketball or Baseball or Soccer or Hockey or Other"}' }
+          ]
+        }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content[0].text.trim();
+    return JSON.parse(text.replace(/```json|```/g, '').trim());
+  } catch(e) {
+    return null;
+  }
+}
+
+function logDeal() {
+  const name = document.getElementById('cardName').value.trim();
+  const sport = document.getElementById('sport').value;
+  const price = parseFloat(document.getElementById('price').value) || 0;
+  const salePrice = parseFloat(document.getElementById('salePrice').value) || 0;
+  const notes = document.getElementById('notes').value.trim();
+
+  if (!name) { alert('Please enter a card name.'); return; }
+  if (!price) { alert('Please enter a price.'); return; }
+
+  const deal = {
+    id: Date.now(),
+    date: new Date().toLocaleDateString('en-US'),
+    name,
+    sport,
+    type: currentType,
+    price,
+    salePrice: currentType === 'SELL' ? salePrice : 0,
+    notes
+  };
+
+  deals.push(deal);
+  localStorage.setItem('showDeals', JSON.stringify(deals));
+
+  document.getElementById('dealForm').style.display = 'none';
+  document.getElementById('previewImg').style.display = 'none';
+
+  renderDeals();
+}
+
+function renderDeals() {
+  const list = document.getElementById('dealsList');
+  const count = document.getElementById('dealCount');
+  const exportBtn = document.getElementById('exportBtn');
+  const summaryBar = document.getElementById('summaryBar');
+
+  count.textContent = deals.length + ' deal' + (deals.length !== 1 ? 's' : '');
+
+  if (deals.length === 0) {
+    list.innerHTML = '<div class="empty-state">No deals logged yet.<br>Take a photo to get started.</div>';
+    exportBtn.style.display = 'none';
+    summaryBar.style.display = 'none';
+    return;
+  }
+
+  exportBtn.style.display = 'block';
+  summaryBar.style.display = 'grid';
+
+  let spent = 0, earned = 0;
+  deals.forEach(d => {
+    if (d.type === 'BUY') spent += d.price;
+    if (d.type === 'SELL') earned += (d.salePrice || d.price);
+  });
+  const net = earned - spent;
+
+  document.getElementById('totalSpent').textContent = '$' + spent.toFixed(2);
+  document.getElementById('totalEarned').textContent = '$' + earned.toFixed(2);
+  const netEl = document.getElementById('totalNet');
+  netEl.textContent = (net >= 0 ? '+$' : '-$') + Math.abs(net).toFixed(2);
+  netEl.className = net >= 0 ? 'profit-pos' : 'profit-neg';
+
+  list.innerHTML = [...deals].reverse().map(d => `
+    <div class="deal-card">
+      <div class="deal-info">
+        <div class="deal-name">${d.name}</div>
+        <div class="deal-meta">${d.sport}${d.notes ? ' · ' + d.notes : ''}</div>
+      </div>
+      <div class="deal-right">
+        <div class="deal-price ${d.type.toLowerCase()}">$${d.price.toFixed(2)}</div>
+        <span class="deal-type-badge badge-${d.type.toLowerCase()}">${d.type}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function exportCSV() {
+  if (deals.length === 0) return;
+
+  const showName = prompt('Enter show name (e.g. Detroit Card Show):') || 'Card Show';
+
+  let csv = 'Date,Show Name,Card Description,Sport,Type,Purchase Price,Sale Price,Profit,Notes\n';
+  deals.forEach(d => {
+    const profit = d.type === 'SELL' ? (d.salePrice - d.price).toFixed(2) : (-d.price).toFixed(2);
+    csv += `"${d.date}","${showName}","${d.name}","${d.sport}","${d.type}","${d.price.toFixed(2)}","${d.salePrice ? d.salePrice.toFixed(2) : ''}","${profit}","${d.notes}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `show_log_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+
+  if (confirm('CSV exported! Clear deals for next show?')) {
+    deals = [];
+    localStorage.setItem('showDeals', JSON.stringify(deals));
+    renderDeals();
+  }
+}
+
+renderDeals();
+setType('BUY');
+</script>
+</body>
+</html>
