@@ -127,6 +127,7 @@ input[type="file"] { display: none; }
 
   <div id="exportSection" style="display:none">
     <button class="btn-outline" onclick="exportDeals()">Export for Show Log Transfer</button>
+    <button class="btn-outline" onclick="exportGeneric()" style="margin-top:8px;color:#888">Export as Generic CSV</button>
     <button class="btn-red" onclick="clearDeals()">Clear all deals</button>
   </div>
 
@@ -314,6 +315,36 @@ async function exportDeals() {
   const a = document.createElement('a');
   a.href = url;
   a.download = `show_log_${dateStr}.zip`;
+  a.click();
+}
+
+async function exportGeneric() {
+  if (!deals.length) return;
+  const showName = prompt('Enter show name:') || 'Card Show';
+  const dateStr = new Date().toISOString().slice(0,10);
+  const zip = new JSZip();
+
+  let csv = 'Date,Time,Show Name,Card Description,Sport,Deal Type,Price,Notes\n';
+  deals.forEach((d, i) => {
+    const price = d.type === 'SELL' ? d.salePrice.toFixed(2) : d.price.toFixed(2);
+    const photoFile = d.photo ? `photo_${i+1}.jpg` : '';
+    csv += `"${d.date}","${d.time || ''}","${showName}","${d.name}","${d.sport}","${d.type}","${price}","${d.notes}"\n`;
+  });
+  zip.file('show_deals.csv', csv);
+
+  // Add photos
+  deals.forEach((d, i) => {
+    if (d.photo) {
+      const base64 = d.photo.split(',')[1];
+      zip.file(`photo_${i+1}.jpg`, base64, { base64: true });
+    }
+  });
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `show_deals_${dateStr}.zip`;
   a.click();
 }
 
