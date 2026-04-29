@@ -144,13 +144,16 @@ const STORAGE_KEY = 'showTrackerDeals';
 
 function saveDeals() {
   try {
-    const data = JSON.stringify(deals);
+    // Strip photos before saving to avoid storage size limits
+    // Photos are large base64 strings that can exceed storage quotas
+    const dealsToSave = deals.map(d => ({ ...d, photo: d.photo ? 'HAS_PHOTO' : null }));
+    const data = JSON.stringify(dealsToSave);
     sessionStorage.setItem(STORAGE_KEY, data);
     try { localStorage.setItem(STORAGE_KEY, data); } catch(e) {}
-    document.getElementById('savingIndicator').textContent = 'Saved';
-    setTimeout(() => document.getElementById('savingIndicator').textContent = '', 1500);
+    document.getElementById('savingIndicator').textContent = 'Saved (' + deals.length + ')';
+    setTimeout(() => document.getElementById('savingIndicator').textContent = '', 2000);
   } catch(e) {
-    document.getElementById('savingIndicator').textContent = 'Could not save';
+    document.getElementById('savingIndicator').textContent = 'Save error: ' + e.message;
   }
 }
 
