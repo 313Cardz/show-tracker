@@ -214,6 +214,7 @@ function logDeal() {
   const deal = {
     id: Date.now(),
     date: new Date().toLocaleDateString('en-US'),
+    time: new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}),
     name, sport,
     type: currentType,
     price: currentType === 'BUY' ? price : 0,
@@ -275,7 +276,7 @@ function renderDeals() {
       }
       <div style="flex:1">
         <div class="deal-name">${d.name}</div>
-        <div class="deal-meta">${d.sport}${d.notes ? ' · ' + d.notes : ''} · ${d.date}</div>
+        <div class="deal-meta">${d.sport}${d.notes ? ' · ' + d.notes : ''} · ${d.date}${d.time ? ' ' + d.time : ''}</div>
         <div class="deal-price ${d.type.toLowerCase()}">$${d.type === 'SELL' ? d.salePrice.toFixed(2) : d.price.toFixed(2)}</div>
         <span class="deal-type-badge badge-${d.type.toLowerCase()}">${d.type}</span>
       </div>
