@@ -138,40 +138,28 @@ let currentType = 'BUY';
 let currentPhoto = null;
 let db = null;
 
-// ── IndexedDB setup ───────────────────────────────────────────────────────────
-function initDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open('ShowTrackerDB', 1);
-    req.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('deals')) {
-        db.createObjectStore('deals', { keyPath: 'id' });
-      }
-    };
-    req.onsuccess = (e) => { db = e.target.result; resolve(); };
-    req.onerror = () => reject(req.error);
-  });
-}
+// ── Storage setup (sessionStorage + localStorage fallback) ───────────────────
+const STORAGE_KEY = 'showTrackerDeals';
 
 function saveDeals() {
-  if (!db) return;
-  const tx = db.transaction('deals', 'readwrite');
-  const store = tx.objectStore('deals');
-  store.clear();
-  deals.forEach(d => store.put(d));
-  document.getElementById('savingIndicator').textContent = 'Saved';
-  setTimeout(() => document.getElementById('savingIndicator').textContent = '', 1500);
+  try {
+    const data = JSON.stringify(deals);
+    sessionStorage.setItem(STORAGE_KEY, data);
+    try { localStorage.setItem(STORAGE_KEY, data); } catch(e) {}
+    document.getElementById('savingIndicator').textContent = 'Saved';
+    setTimeout(() => document.getElementById('savingIndicator').textContent = '', 1500);
+  } catch(e) {
+    document.getElementById('savingIndicator').textContent = 'Could not save';
+  }
 }
 
 function loadDeals() {
-  return new Promise((resolve) => {
-    if (!db) { resolve([]); return; }
-    const tx = db.transaction('deals', 'readonly');
-    const store = tx.objectStore('deals');
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => resolve([]);
-  });
+  try {
+    const data = sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch(e) {
+    return [];
+  }
 }
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
@@ -315,16 +303,9 @@ function clearDeals() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-initDB().then(() => {
-  return loadDeals();
-}).then((saved) => {
-  deals = saved;
-  renderDeals();
-  setType('BUY');
-}).catch(() => {
-  renderDeals();
-  setType('BUY');
-});
+deals = loadDeals();
+renderDeals();
+setType('BUY');
 </script>
 </body>
 </html>
