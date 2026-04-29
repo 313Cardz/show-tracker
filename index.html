@@ -301,8 +301,12 @@ function renderDeals() {
 
   let spent = 0, earned = 0;
   deals.forEach(d => {
-    spent += d.price;
+    if (d.type === 'BUY') spent += d.price;
     if (d.type === 'SELL') earned += (d.salePrice || 0);
+    if (d.type === 'TRADE') {
+      spent += (d.tradeCashOut || 0);
+      earned += (d.tradeCashIn || 0);
+    }
   });
   const net = earned - spent;
 
