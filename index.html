@@ -50,6 +50,7 @@ input[type="file"] { display: none; }
 .section-title { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
 .saving-indicator { font-size: 11px; color: #555; text-align: center; padding: 4px; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
@@ -279,19 +280,36 @@ function renderDeals() {
   `).join('');
 }
 
-function exportDeals() {
+async function exportDeals() {
   if (!deals.length) return;
   const showName = prompt('Enter show name:') || 'Card Show';
-  let csv = 'Date,Show Name,Card Description,Sport,Type,Purchase Price,Sale Price,Profit,Notes\n';
-  deals.forEach(d => {
+  const dateStr = new Date().toISOString().slice(0,10);
+  const zip = new JSZip();
+
+  // Build CSV with photo filename column
+  let csv = 'Date,Show Name,Card Description,Sport,Type,Purchase Price,Sale Price,Profit,Notes,Photo\n';
+  deals.forEach((d, i) => {
     const profit = d.type === 'SELL' ? (d.salePrice - d.price).toFixed(2) : (-d.price).toFixed(2);
-    csv += `"${d.date}","${showName}","${d.name}","${d.sport}","${d.type}","${d.price.toFixed(2)}","${d.salePrice ? d.salePrice.toFixed(2) : ''}","${profit}","${d.notes}"\n`;
+    const photoFile = d.photo ? `photo_${i+1}.jpg` : '';
+    csv += `"${d.date}","${showName}","${d.name}","${d.sport}","${d.type}","${d.price.toFixed(2)}","${d.salePrice ? d.salePrice.toFixed(2) : ''}","${profit}","${d.notes}","${photoFile}"\n`;
   });
-  const blob = new Blob([csv], { type: 'text/csv' });
+  zip.file('show_log.csv', csv);
+
+  // Add photos
+  let photoCount = 0;
+  deals.forEach((d, i) => {
+    if (d.photo) {
+      const base64 = d.photo.split(',')[1];
+      zip.file(`photo_${i+1}.jpg`, base64, { base64: true });
+      photoCount++;
+    }
+  });
+
+  const blob = await zip.generateAsync({ type: 'blob' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `show_log_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `show_log_${dateStr}.zip`;
   a.click();
 }
 
