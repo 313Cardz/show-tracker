@@ -30,6 +30,7 @@ input[type="file"] { display: none; }
 .type-btn { padding: 12px; border: 0.5px solid #333; border-radius: 8px; background: #222; color: #888; font-size: 15px; cursor: pointer; text-align: center; }
 .type-btn.active-buy { background: #0d2b1a; border-color: #00e676; color: #00e676; }
 .type-btn.active-sell { background: #2b1a0d; border-color: #ff9800; color: #ff9800; }
+.type-btn.active-trade { background: #0d0d2b; border-color: #7c8cf8; color: #7c8cf8; }
 .summary-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; text-align: center; }
 .summary-item label { font-size: 11px; color: #666; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 .summary-item span { font-size: 16px; font-weight: 600; }
@@ -46,6 +47,8 @@ input[type="file"] { display: none; }
 .deal-type-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-top: 4px; display: inline-block; }
 .badge-buy { background: #1a0d0d; color: #ef5350; }
 .badge-sell { background: #0d1a0d; color: #00e676; }
+.badge-trade { background: #1a1a2b; color: #7c8cf8; }
+.deal-price.trade { color: #7c8cf8; }
 .empty-state { text-align: center; padding: 40px 20px; color: #555; font-size: 14px; }
 .section-title { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
 .saving-indicator { font-size: 11px; color: #555; text-align: center; padding: 4px; }
@@ -99,9 +102,10 @@ input[type="file"] { display: none; }
     </div>
     <div class="field">
       <label>Deal type</label>
-      <div class="type-btns">
+      <div class="type-btns" style="grid-template-columns:1fr 1fr 1fr">
         <div class="type-btn" id="btnBuy" onclick="setType('BUY')">Buy</div>
         <div class="type-btn" id="btnSell" onclick="setType('SELL')">Sell</div>
+        <div class="type-btn" id="btnTrade" onclick="setType('TRADE')">Trade</div>
       </div>
     </div>
     <div class="field" id="priceField">
@@ -111,6 +115,27 @@ input[type="file"] { display: none; }
     <div class="field" id="salePriceField" style="display:none">
       <label>Sale price</label>
       <input type="number" id="salePrice" placeholder="0.00" step="0.01" inputmode="decimal">
+    </div>
+    <div class="field" id="tradeGaveField" style="display:none">
+      <label>Cards out (what you gave)</label>
+      <input type="text" id="tradeGave" placeholder="e.g. Pikachu Base Set PSA 9">
+    </div>
+    <div class="field" id="tradeGotField" style="display:none">
+      <label>Cards in (what you got)</label>
+      <input type="text" id="tradeGot" placeholder="e.g. Charizard Base Set Raw">
+    </div>
+    <div class="field" id="tradeCashField" style="display:none">
+      <label>Cash added (enter 0 if none)</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:11px;color:#666;margin-bottom:4px">You paid extra</div>
+          <input type="number" id="tradeCashOut" placeholder="0.00" step="0.01" inputmode="decimal" min="0">
+        </div>
+        <div>
+          <div style="font-size:11px;color:#666;margin-bottom:4px">You received extra</div>
+          <input type="number" id="tradeCashIn" placeholder="0.00" step="0.01" inputmode="decimal" min="0">
+        </div>
+      </div>
     </div>
     <div class="field">
       <label>Notes (optional)</label>
@@ -172,8 +197,12 @@ function setType(type) {
   currentType = type;
   document.getElementById('btnBuy').className = 'type-btn' + (type === 'BUY' ? ' active-buy' : '');
   document.getElementById('btnSell').className = 'type-btn' + (type === 'SELL' ? ' active-sell' : '');
+  document.getElementById('btnTrade').className = 'type-btn' + (type === 'TRADE' ? ' active-trade' : '');
   document.getElementById('priceField').style.display = type === 'BUY' ? 'block' : 'none';
   document.getElementById('salePriceField').style.display = type === 'SELL' ? 'block' : 'none';
+  document.getElementById('tradeGaveField').style.display = type === 'TRADE' ? 'block' : 'none';
+  document.getElementById('tradeGotField').style.display = type === 'TRADE' ? 'block' : 'none';
+  document.getElementById('tradeCashField').style.display = type === 'TRADE' ? 'block' : 'none';
 }
 
 function handlePhoto(event) {
@@ -209,17 +238,27 @@ function logDeal() {
   const notes = document.getElementById('notes').value.trim();
 
   if (!name) { alert('Please enter a card name.'); return; }
+  const tradeGave = document.getElementById('tradeGave').value.trim();
+  const tradeGot = document.getElementById('tradeGot').value.trim();
+  const tradeCashOut = parseFloat(document.getElementById('tradeCashOut').value) || 0;
+  const tradeCashIn = parseFloat(document.getElementById('tradeCashIn').value) || 0;
   if (currentType === 'BUY' && !price) { alert('Please enter a price paid.'); return; }
   if (currentType === 'SELL' && !salePrice) { alert('Please enter a sale price.'); return; }
+  if (currentType === 'TRADE' && (!tradeGave || !tradeGot)) { alert('Please enter both cards for the trade.'); return; }
 
   const deal = {
     id: Date.now(),
     date: new Date().toLocaleDateString('en-US'),
     time: new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}),
-    name, sport,
+    name: currentType === 'TRADE' ? tradeGot : name,
+    sport,
     type: currentType,
     price: currentType === 'BUY' ? price : 0,
     salePrice: currentType === 'SELL' ? salePrice : 0,
+    tradeGave: currentType === 'TRADE' ? tradeGave : null,
+    tradeGot: currentType === 'TRADE' ? tradeGot : null,
+    tradeCashOut: currentType === 'TRADE' ? tradeCashOut : 0,
+    tradeCashIn: currentType === 'TRADE' ? tradeCashIn : 0,
     notes,
     photo: currentPhoto
   };
@@ -232,6 +271,10 @@ function logDeal() {
   document.getElementById('price').value = '';
   document.getElementById('salePrice').value = '';
   document.getElementById('notes').value = '';
+  document.getElementById('tradeGave').value = '';
+  document.getElementById('tradeGot').value = '';
+  document.getElementById('tradeCashOut').value = '';
+  document.getElementById('tradeCashIn').value = '';
   removePhoto();
   setType('BUY');
   renderDeals();
@@ -276,9 +319,9 @@ function renderDeals() {
         : `<div class="deal-thumb-placeholder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>`
       }
       <div style="flex:1">
-        <div class="deal-name">${d.name}</div>
-        <div class="deal-meta">${d.sport}${d.notes ? ' · ' + d.notes : ''} · ${d.date}${d.time ? ' ' + d.time : ''}</div>
-        <div class="deal-price ${d.type.toLowerCase()}">$${d.type === 'SELL' ? d.salePrice.toFixed(2) : d.price.toFixed(2)}</div>
+        <div class="deal-name">${d.type === 'TRADE' ? d.tradeGot : d.name}</div>
+        <div class="deal-meta">${d.type === 'TRADE' ? 'Out: ' + d.tradeGave + ' · In: ' + d.tradeGot + (d.tradeCashOut ? ' · +$' + d.tradeCashOut.toFixed(2) + ' paid' : '') + (d.tradeCashIn ? ' · +$' + d.tradeCashIn.toFixed(2) + ' received' : '') + ' · ' : ''}${d.sport}${d.notes ? ' · ' + d.notes : ''} · ${d.date}${d.time ? ' ' + d.time : ''}</div>
+        <div class="deal-price ${d.type.toLowerCase()}">${d.type === 'TRADE' ? 'Trade' + (d.tradeCashOut ? ' -$' + d.tradeCashOut.toFixed(2) : '') + (d.tradeCashIn ? ' +$' + d.tradeCashIn.toFixed(2) : '') : '$' + (d.type === 'SELL' ? d.salePrice.toFixed(2) : d.price.toFixed(2))}</div>
         <span class="deal-type-badge badge-${d.type.toLowerCase()}">${d.type}</span>
       </div>
     </div>
@@ -328,7 +371,7 @@ async function exportGeneric() {
   deals.forEach((d, i) => {
     const price = d.type === 'SELL' ? d.salePrice.toFixed(2) : d.price.toFixed(2);
     const photoFile = d.photo ? `photo_${i+1}.jpg` : '';
-    csv += `"${d.date}","${d.time || ''}","${showName}","${d.name}","${d.sport}","${d.type}","${price}","${d.notes}"\n`;
+    csv += `"${d.date}","${d.time || ''}","${showName}","${d.type === 'TRADE' ? d.tradeGot : d.name}","${d.sport}","${d.type}","${price}","${d.type === 'TRADE' ? 'Gave: ' + d.tradeGave : d.notes}","${d.notes}"\n`;
   });
   zip.file('show_deals.csv', csv);
 
