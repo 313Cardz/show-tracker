@@ -327,6 +327,10 @@ function renderDeals() {
         <div class="deal-meta">${d.type === 'TRADE' ? 'Out: ' + d.tradeGave + ' · In: ' + d.tradeGot + (d.tradeCashOut ? ' · +$' + d.tradeCashOut.toFixed(2) + ' paid' : '') + (d.tradeCashIn ? ' · +$' + d.tradeCashIn.toFixed(2) + ' received' : '') + ' · ' : ''}${d.sport}${d.notes ? ' · ' + d.notes : ''} · ${d.date}${d.time ? ' ' + d.time : ''}</div>
         <div class="deal-price ${d.type.toLowerCase()}">${d.type === 'TRADE' ? 'Trade' + (d.tradeCashOut ? ' -$' + d.tradeCashOut.toFixed(2) : '') + (d.tradeCashIn ? ' +$' + d.tradeCashIn.toFixed(2) : '') : '$' + (d.type === 'SELL' ? d.salePrice.toFixed(2) : d.price.toFixed(2))}</div>
         <span class="deal-type-badge badge-${d.type.toLowerCase()}">${d.type}</span>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button onclick="editDeal(${d.id})" style="padding:4px 12px;background:#222;border:0.5px solid #444;border-radius:6px;color:#aaa;font-size:12px;cursor:pointer">Edit</button>
+          <button onclick="deleteDeal(${d.id})" style="padding:4px 12px;background:#222;border:0.5px solid #ef5350;border-radius:6px;color:#ef5350;font-size:12px;cursor:pointer">Delete</button>
+        </div>
       </div>
     </div>
   `).join('');
@@ -393,6 +397,43 @@ async function exportGeneric() {
   a.href = url;
   a.download = `show_deals_${dateStr}.zip`;
   a.click();
+}
+
+function deleteDeal(id) {
+  if (!confirm('Delete this deal?')) return;
+  deals = deals.filter(d => d.id !== id);
+  saveDeals();
+  renderDeals();
+}
+
+function editDeal(id) {
+  const d = deals.find(d => d.id === id);
+  if (!d) return;
+
+  // Populate form with deal data
+  setType(d.type);
+  if (d.type === 'BUY') {
+    document.getElementById('cardName').value = d.name;
+    document.getElementById('price').value = d.price;
+  } else if (d.type === 'SELL') {
+    document.getElementById('cardName').value = d.name;
+    document.getElementById('salePrice').value = d.salePrice;
+  } else if (d.type === 'TRADE') {
+    document.getElementById('tradeGave').value = d.tradeGave || '';
+    document.getElementById('tradeGot').value = d.tradeGot || '';
+    document.getElementById('tradeCashOut').value = d.tradeCashOut || '';
+    document.getElementById('tradeCashIn').value = d.tradeCashIn || '';
+  }
+  document.getElementById('sport').value = d.sport;
+  document.getElementById('notes').value = d.notes || '';
+
+  // Remove the old deal so logging saves the edited version
+  deals = deals.filter(x => x.id !== id);
+  saveDeals();
+  renderDeals();
+
+  // Scroll to form
+  window.scrollTo({ top: document.querySelector('.card').offsetTop, behavior: 'smooth' });
 }
 
 function clearDeals() {
