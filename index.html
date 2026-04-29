@@ -321,9 +321,11 @@ function clearDeals() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-deals = loadDeals();
-renderDeals();
-setType('BUY');
+window.addEventListener('load', function() {
+  deals = loadDeals();
+  renderDeals();
+  setType('BUY');
+});
 </script>
 </body>
 </html>
